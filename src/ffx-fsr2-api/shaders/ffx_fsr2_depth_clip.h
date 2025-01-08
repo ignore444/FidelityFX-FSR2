@@ -72,6 +72,7 @@ FfxFloat32 ComputeDepthClip(FfxFloat32x2 fUvSample, FfxFloat32 fCurrentDepthView
                 FfxFloat32 fBilinearWeight = fBilinearWeights[y][x];
                 if (fBilinearWeight > reconstructedDepthBilinearWeightThreshold) {
                     // 이전프레임과 현재프레임의 깊이 값 차이가 'Akeley분리값' 보다 커야 , 서로 다른 물체 → Disocclusion 발생
+                    // LoadReconstructedPrevDepth : 
                     fDepth += ComputeSampleDepthClip(iSamplePos, LoadReconstructedPrevDepth(iSamplePos), fBilinearWeight, fCurrentDepthViewSpace);
                     fWeightSum += fBilinearWeight;
                 }
@@ -91,6 +92,7 @@ void DepthClip(FFX_MIN16_I2 iPxPos)
     //#GG_4_DepthClip : 1.계산 : fCurrentDepthViewSpace 현재 프레임의 view space에서의 depth값
     FfxFloat32 fCurrentDepthViewSpace = abs(ConvertFromDeviceDepthToViewSpace(LoadDilatedDepth(iPxPos)));
 
+    //#GG_4_DepthClip : 2.계산 : Disocclusion Mask값 계산 ← 이전프레임 depth와 현재프레임 depth차를 Akely sepration value와 비교
     FfxFloat32 fDepthClip = ComputeDepthClip(fDilatedUv, fCurrentDepthViewSpace);
 
     StoreDepthClip(iPxPos, fDepthClip);
