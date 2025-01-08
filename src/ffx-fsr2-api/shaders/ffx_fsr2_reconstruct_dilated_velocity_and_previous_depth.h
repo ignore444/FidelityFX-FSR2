@@ -24,6 +24,7 @@
 
 void ReconstructPrevDepth(FFX_MIN16_I2 iPxPos, FfxFloat32 fDepth, FfxFloat32x2 fMotionVector, FFX_MIN16_I2 iPxDepthSize)
 {
+    //#GG_3_ReconstructAndDilate : 4.1.계산 PrevPos : 전프레임에서의 위치 
     FfxFloat32x2 fDepthUv = (FfxFloat32x2(iPxPos) + 0.5f) / iPxDepthSize;
     FfxFloat32x2 fPxPrevPos = (fDepthUv + fMotionVector) * FfxFloat32x2(iPxDepthSize)-0.5f;
     FFX_MIN16_I2 iPxPrevPos = FFX_MIN16_I2(floor(fPxPrevPos));
@@ -40,6 +41,7 @@ void ReconstructPrevDepth(FFX_MIN16_I2 iPxPos, FfxFloat32 fDepth, FfxFloat32x2 f
         }
     };
 
+    //#GG_3_ReconstructAndDilate : 4.2. : 현재pixel위치의 현재depth값을, 현재pixel의 이전프레임pixel위치에 저장
     // Project current depth into previous frame locations.
     // Push to all pixels having some contribution if reprojection is using bilinear logic.
     for (FfxInt32 y = 0; y <= 1; ++y) {
@@ -52,6 +54,7 @@ void ReconstructPrevDepth(FFX_MIN16_I2 iPxPos, FfxFloat32 fDepth, FfxFloat32x2 f
 
                 FFX_MIN16_I2 storePos = iPxPrevPos + offset;
                 if (IsOnScreen(storePos, iPxDepthSize)) {
+                    //#GG_3_ReconstructAndDilate : 4.3.저장 : fDilatedDepth을, 전프레임에서의위치+offset 에 저장
                     StoreReconstructedDepth(storePos, fDepth);
                 }
             }
@@ -108,12 +111,16 @@ void FindNearestDepth(FFX_PARAMETER_IN FFX_MIN16_I2 iPxPos, FFX_PARAMETER_IN FFX
 
 void ReconstructPrevDepthAndDilateMotionVectors(FFX_MIN16_I2 iPxLrPos)
 {
+    // iPxLrPos : 해당 픽셀 좌표
+    // iNearestDepthCoord : NearestDepth가 있는 픽셀의 좌표
+
     FFX_MIN16_I2 iPxLrSize = FFX_MIN16_I2(RenderSize());
     FFX_MIN16_I2 iPxHrSize = FFX_MIN16_I2(DisplaySize());
 
     FfxFloat32 fDilatedDepth;
     FFX_MIN16_I2 iNearestDepthCoord;
 
+    //#GG_3_ReconstructAndDilate : 1.계산 fDilatedDepth : NearestDepth를 찾음 , iNearestDepthCoord : 찾은 NearestDepth의 좌표
     FindNearestDepth(iPxLrPos, iPxLrSize, fDilatedDepth, iNearestDepthCoord);
 
 #if FFX_FSR2_OPTION_LOW_RESOLUTION_MOTION_VECTORS
@@ -123,12 +130,15 @@ void ReconstructPrevDepthAndDilateMotionVectors(FFX_MIN16_I2 iPxLrPos)
     FfxFloat32x2 fLrPosInHr = (fSrcJitteredPos / iPxLrSize) * iPxHrSize;
     FfxFloat32x2 fHrPos = floor(fLrPosInHr) + 0.5;
 
+    //#GG_3_ReconstructAndDilate : 2.계산 fDilatedMotionVector , iNearestDepthCoord에서 MotionVector를 가져옴
     FfxFloat32x2 fDilatedMotionVector = LoadInputMotionVector(FFX_MIN16_I2(fHrPos));
 #endif
 
+    //#GG_3_ReconstructAndDilate : 3.저장 : fDilatedDepth, fDilatedMotionVector
     StoreDilatedDepth(iPxLrPos, fDilatedDepth);
     StoreDilatedMotionVector(iPxLrPos, fDilatedMotionVector);
 
+    //#GG_3_ReconstructAndDilate : 4. 계산,저장 : PrevDepth
     ReconstructPrevDepth(iPxLrPos, fDilatedDepth, fDilatedMotionVector, iPxLrSize);
 }
 

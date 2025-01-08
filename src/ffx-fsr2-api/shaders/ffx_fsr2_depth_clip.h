@@ -37,6 +37,7 @@ FfxFloat32 ComputeSampleDepthClip(FFX_MIN16_I2 iPxSamplePos, FfxFloat32 fPreviou
     FfxFloat32 fDepthDiff = fCurrentDepthViewSpace - fPrevNearestDepthViewSpace;
 
     FfxFloat32 fDepthClipFactor = (fDepthDiff > 0) ? ffxSaturate(fRequiredDepthSeparation / fDepthDiff) : 1.0f;
+    // 이 값이 크면 분리도가 큼 → disocclusion 크게 발생
 
 #ifdef _DEBUG
     rw_debug_out[iPxSamplePos] = FfxFloat32x4(fCurrentDepthViewSpace, fPrevNearestDepthViewSpace, fDepthDiff, fDepthClipFactor);
@@ -48,7 +49,7 @@ FfxFloat32 ComputeSampleDepthClip(FFX_MIN16_I2 iPxSamplePos, FfxFloat32 fPreviou
 FfxFloat32 ComputeDepthClip(FfxFloat32x2 fUvSample, FfxFloat32 fCurrentDepthViewSpace)
 {
     FfxFloat32x2 fPxSample = fUvSample * RenderSize() - 0.5f;
-    FFX_MIN16_I2 iPxSample = FFX_MIN16_I2(floor(fPxSample));
+    FFX_MIN16_I2 iPxSample = FFX_MIN16_I2(floor(fPxSample));    // 이전프레임 위치
     FfxFloat32x2 fPxFrac = ffxFract(fPxSample);
 
     const FfxFloat32 fBilinearWeights[2][2] = {
@@ -66,10 +67,11 @@ FfxFloat32 ComputeDepthClip(FfxFloat32x2 fUvSample, FfxFloat32 fCurrentDepthView
     FfxFloat32 fWeightSum = 0.0f;
     for (FfxInt32 y = 0; y <= 1; ++y) {
         for (FfxInt32 x = 0; x <= 1; ++x) {
-            FFX_MIN16_I2 iSamplePos = iPxSample + FFX_MIN16_I2(x, y);
+            FFX_MIN16_I2 iSamplePos = iPxSample + FFX_MIN16_I2(x, y);   // 이전프레임 위치 + offset
             if (IsOnScreen(iSamplePos, FFX_MIN16_I2(RenderSize()))) {
                 FfxFloat32 fBilinearWeight = fBilinearWeights[y][x];
                 if (fBilinearWeight > reconstructedDepthBilinearWeightThreshold) {
+                    // 이전프레임과 현재프레임의 깊이 값 차이가 'Akeley분리값' 보다 커야 , 서로 다른 물체 → Disocclusion 발생
                     fDepth += ComputeSampleDepthClip(iSamplePos, LoadReconstructedPrevDepth(iSamplePos), fBilinearWeight, fCurrentDepthViewSpace);
                     fWeightSum += fBilinearWeight;
                 }
@@ -85,6 +87,8 @@ void DepthClip(FFX_MIN16_I2 iPxPos)
     FfxFloat32x2 fDepthUv = (FfxFloat32x2(iPxPos) + 0.5f) / RenderSize();
     FfxFloat32x2 fMotionVector = LoadDilatedMotionVector(iPxPos);
     FfxFloat32x2 fDilatedUv = fDepthUv + fMotionVector;
+
+    //#GG_4_DepthClip : 1.계산 : fCurrentDepthViewSpace 현재 프레임의 view space에서의 depth값
     FfxFloat32 fCurrentDepthViewSpace = abs(ConvertFromDeviceDepthToViewSpace(LoadDilatedDepth(iPxPos)));
 
     FfxFloat32 fDepthClip = ComputeDepthClip(fDilatedUv, fCurrentDepthViewSpace);
