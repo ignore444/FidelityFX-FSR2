@@ -3,3 +3,4 @@ bin/
 /.vs
 out/
 /src/ffx-fsr2-api/shaders/.vs
+src/.vs
