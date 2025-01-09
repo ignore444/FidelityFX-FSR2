@@ -95,5 +95,6 @@ void DepthClip(FFX_MIN16_I2 iPxPos)
     //#GG_4_DepthClip : 2.계산 : Disocclusion Mask값 계산 ← 이전프레임 depth와 현재프레임 depth차를 Akely sepration value와 비교
     FfxFloat32 fDepthClip = ComputeDepthClip(fDilatedUv, fCurrentDepthViewSpace);
 
+    //#GG_4_DepthClip : 3.저장 : rw_depth_clip[Pos] = fDepthClip
     StoreDepthClip(iPxPos, fDepthClip);
 }

@@ -60,5 +60,6 @@ void CS(
     uint uGroupIndex : SV_GroupIndex
 )
 {
+    //#GG_2_AdjustInputColor : 0. Entry
     PrepareInputColor(uDispatchThreadId);
 }

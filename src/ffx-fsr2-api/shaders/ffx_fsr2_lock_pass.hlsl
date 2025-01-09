@@ -60,6 +60,7 @@ void CS(uint2 uGroupId : SV_GroupID, uint2 uGroupThreadId : SV_GroupThreadID)
 {
     uint2 uDispatchThreadId = uGroupId * uint2(FFX_FSR2_THREAD_GROUP_WIDTH, FFX_FSR2_THREAD_GROUP_HEIGHT) + uGroupThreadId;
 
+    //#GG_5_Lock : 1. 계산,저장 : Lock
     ComputeLock(uDispatchThreadId);
 
     PreProcessReactiveMask(uDispatchThreadId, uGroupId, uGroupThreadId);

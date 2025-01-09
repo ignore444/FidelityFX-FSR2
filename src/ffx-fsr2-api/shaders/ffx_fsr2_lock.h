@@ -47,6 +47,10 @@ FfxFloat32 ComputeThinFeatureConfidence(FFX_MIN16_I2 pos)
 
     const FfxUInt32 rejectionMasks[4] = {
         SETBIT(0) | SETBIT(1) | SETBIT(3) | SETBIT(4), //Upper left
+        /*
+         0 1
+         3 4
+        */
         SETBIT(1) | SETBIT(2) | SETBIT(4) | SETBIT(5), //Upper right
         SETBIT(3) | SETBIT(4) | SETBIT(6) | SETBIT(7), //Lower left
         SETBIT(4) | SETBIT(5) | SETBIT(7) | SETBIT(8), //Lower right
@@ -64,20 +68,21 @@ FfxFloat32 ComputeThinFeatureConfidence(FFX_MIN16_I2 pos)
             FfxFloat32 sampleLuma = GetLuma(samplePos);
             FfxFloat32 difference = ffxMax(sampleLuma, fNucleus) / ffxMin(sampleLuma, fNucleus);
 
-            if (difference > 0 && (difference < similar_threshold)) {
+            if (difference > 0 && (difference < similar_threshold)) {   // 차이가 없다
                 mask |= SETBIT(idx);
-            } else {
-                dissimilarLumaMin = ffxMin(dissimilarLumaMin, sampleLuma);
-                dissimilarLumaMax = ffxMax(dissimilarLumaMax, sampleLuma);
+            } else {    // 차이가 있으면
+                dissimilarLumaMin = ffxMin(dissimilarLumaMin, sampleLuma);  // 차이가 있는 주변 픽셀의 최저값
+                dissimilarLumaMax = ffxMax(dissimilarLumaMax, sampleLuma);  // 차이가 있는 주변 픽셀의 최대값
             }
         }
     }
 
+    // 주변 비유사 픽셀보다 확실히 밝거나,확실히 어두우면
     FfxBoolean isRidge = fNucleus > dissimilarLumaMax || fNucleus < dissimilarLumaMin;
 
     if (FFX_FALSE == isRidge) {
 
-        return 0;
+        return 0;   // ThinFeature 없음
     }
 
     FFX_UNROLL
@@ -88,18 +93,20 @@ FfxFloat32 ComputeThinFeatureConfidence(FFX_MIN16_I2 pos)
         }
     }
     
-    return 1;
+    return 1;       // ThinFeature 있음
 }
 
 FFX_STATIC FfxBoolean s_bLockUpdated = FFX_FALSE;
 
 LOCK_STATUS_T ComputeLockStatus(FFX_MIN16_I2 iPxLrPos, LOCK_STATUS_T fLockStatus)
 {
+    //#GG_5_Lock : 1.1. 계산 : fConfidenceOfThinFeature : 1 - Thin Feature임 , 0 - Thin Feature아님
     FfxFloat32 fConfidenceOfThinFeature = ComputeThinFeatureConfidence(iPxLrPos);
 
     s_bLockUpdated = FFX_FALSE;
     if (fConfidenceOfThinFeature > 0.0f)
     {
+        //#GG_5_Lock : 1.2.저장 : fLockStatus[LOCK_LIFETIME_REMAINING]
         //put to negative on new lock
         fLockStatus[LOCK_LIFETIME_REMAINING] = (fLockStatus[LOCK_LIFETIME_REMAINING] == LOCK_STATUS_F1(0.0f)) ? LOCK_STATUS_F1(-LockInitialLifetime()) : LOCK_STATUS_F1(-(LockInitialLifetime() * 2));
 

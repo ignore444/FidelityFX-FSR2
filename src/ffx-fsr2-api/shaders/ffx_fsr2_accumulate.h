@@ -197,7 +197,7 @@ void Accumulate(FFX_MIN16_I2 iPxHrPos)
     const FfxFloat32x2 fMotionVector = GetMotionVector(iPxHrPos, fHrUv);
 
     const FfxFloat32 fHrVelocity = GetPxHrVelocity(fMotionVector);
-    const FfxFloat32 fDepthClipFactor = ffxSaturate(SampleDepthClip(fLrUvJittered));
+    const FfxFloat32 fDepthClipFactor = ffxSaturate(SampleDepthClip(fLrUvJittered));    // Disocclusion Mask
     const FfxFloat32 fLumaStabilityFactor = GetLumaStabilityFactor(fHrUv, fHrVelocity);
     const FfxFloat32 fAccumulationMask = 1.0f - TransparencyAndCompositionMaskSample(fLrUvJittered, RenderSize()).r;
 
