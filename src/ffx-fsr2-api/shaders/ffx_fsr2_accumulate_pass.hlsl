@@ -85,6 +85,6 @@ void CS(uint2 uGroupId : SV_GroupID, uint2 uGroupThreadId : SV_GroupThreadID)
     uGroupId.y = GroupRows - uGroupId.y - 1;
 
     uint2 uDispatchThreadId = uGroupId * uint2(FFX_FSR2_THREAD_GROUP_WIDTH, FFX_FSR2_THREAD_GROUP_HEIGHT) + uGroupThreadId;
-    //#GG_6_Reproject&Accumulate : 0. Entry
+    //#GG_6_Reproject_Accumulate : 0. Entry
     Accumulate(min16int2(uDispatchThreadId));
 }

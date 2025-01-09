@@ -37,7 +37,10 @@ FfxFloat32 ComputeSampleDepthClip(FFX_MIN16_I2 iPxSamplePos, FfxFloat32 fPreviou
     FfxFloat32 fDepthDiff = fCurrentDepthViewSpace - fPrevNearestDepthViewSpace;
 
     FfxFloat32 fDepthClipFactor = (fDepthDiff > 0) ? ffxSaturate(fRequiredDepthSeparation / fDepthDiff) : 1.0f;
-    // 이 값이 크면 분리도가 큼 → disocclusion 크게 발생
+    // 1.fDepthDiff > 0 경우, fDepthDiff 크면 0에 가까워짐
+    // 2.fDepthDiff < 0 경우, 1.0 :  
+
+    // 이 값이 작으면 분리도가 큼 → disocclusion 크게 발생
 
 #ifdef _DEBUG
     rw_debug_out[iPxSamplePos] = FfxFloat32x4(fCurrentDepthViewSpace, fPrevNearestDepthViewSpace, fDepthDiff, fDepthClipFactor);
@@ -95,6 +98,6 @@ void DepthClip(FFX_MIN16_I2 iPxPos)
     //#GG_4_DepthClip : 2.계산 : Disocclusion Mask값 계산 ← 이전프레임 depth와 현재프레임 depth차를 Akely sepration value와 비교
     FfxFloat32 fDepthClip = ComputeDepthClip(fDilatedUv, fCurrentDepthViewSpace);
 
-    //#GG_4_DepthClip : 3.저장 : rw_depth_clip[Pos] = fDepthClip
+    //#GG_4_DepthClip : 3.저장 : rw_depth_clip[Pos] = fDepthClip , 0 : 완전 disoccluded
     StoreDepthClip(iPxPos, fDepthClip);
 }
