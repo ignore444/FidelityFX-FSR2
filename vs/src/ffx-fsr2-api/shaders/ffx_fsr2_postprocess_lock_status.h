@@ -57,6 +57,7 @@ LockState PostProcessLockStatus(FFX_MIN16_I2 iPxHrPos, FFX_PARAMETER_IN FfxFloat
 
     fLockStatus[LOCK_LIFETIME_REMAINING] = abs(fLockStatus[LOCK_LIFETIME_REMAINING]);
 
+    //#GG_6_Reproject_Accumulate : 3.1. 계산 : fLuminanceDiff [0,1] : [찾이가없음,차이가큼]
     FFX_MIN16_F fShadingChangeLuma = GetShadingChangeLuma(fLrUvJittered);
 
     //init temporal shading change factor, init to -1 or so in reproject to know if "true new"?

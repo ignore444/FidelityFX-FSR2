@@ -157,16 +157,16 @@ UPSAMPLE_F ComputeMaxAccumulationWeight(UPSAMPLE_F fHrVelocity, UPSAMPLE_F fReac
 
     UPSAMPLE_F normalizedMinimum = UPSAMPLE_F(accumulationMaxOnMotion) / UPSAMPLE_F(MaxAccumulationWeight());
 
-    //#GG_6_Reproject_Accumulate : 3.1. ReactiveMask 기반 가중치
+    //#GG_6_Reproject_Accumulate : 4.1. ReactiveMask 기반 가중치
     UPSAMPLE_F fReactiveMaxAccumulationWeight = UPSAMPLE_F(1) - fReactiveMax;
 
-    //#GG_6_Reproject_Accumulate : 3.2. 모션 기반 가중치 : 모션벡터 fHrVelocity가 클수록 히스토리를 믿기 어렵다 → History 가중치 낮춤
+    //#GG_6_Reproject_Accumulate : 4.2. 모션 기반 가중치 : 모션벡터 fHrVelocity가 클수록 히스토리를 믿기 어렵다 → History 가중치 낮춤
     UPSAMPLE_F fMotionMaxAccumulationWeight = ffxLerp(UPSAMPLE_F(1), normalizedMinimum, ffxSaturate(fHrVelocity * UPSAMPLE_F(10)));
 
-    //#GG_6_Reproject_Accumulate : 3.3. 깊이 기반 가중치 : fDepthClipFactor가 0이면 이번프레임에 완전 disoccluded → History 가중치 낮춤
+    //#GG_6_Reproject_Accumulate : 4.3. 깊이 기반 가중치 : fDepthClipFactor가 0이면 이번프레임에 완전 disoccluded → History 가중치 낮춤
     UPSAMPLE_F fDepthClipMaxAccumulationWeight = fDepthClipFactor;
 
-    //#GG_6_Reproject_Accumulate : 3.4. 휘도차이 기반 가중치 : 현재 프레임과 이전 프레임의 휘도 차이(fLuminanceDiff)가 클수록,
+    //#GG_6_Reproject_Accumulate : 4.4. 휘도차이 기반 가중치 : 현재 프레임과 이전 프레임의 휘도 차이(fLuminanceDiff)가 클수록,
     // 오래된 히스토리를 유지하면 색 번짐(Ghosting)이 생길 수 있으므로 제한을 강화합니다.
     UPSAMPLE_F fLuminanceDiffMaxAccumulationWeight = ffxSaturate(ffxMax(normalizedMinimum, UPSAMPLE_F(1) - fLuminanceDiff));
 
@@ -231,18 +231,21 @@ void Accumulate(FFX_MIN16_I2 iPxHrPos)
     FFX_MIN16_F fLuminanceDiff = FFX_MIN16_F(0.0f);
 
     //#GG_6_Reproject_Accumulate : 2. 계산 : LockState
+    //#GG_6_Reproject_Accumulate : 3. 계산 : fLuminanceDiff [0,1] : [찾이가없음,차이가큼]
     LockState lockState = PostProcessLockStatus(iPxHrPos, fLrUvJittered, FFX_MIN16_F(fDepthClipFactor), fHrVelocity, fHistoryColorAndWeight.w, fLockStatus, fLuminanceDiff);
 
 
-    //#GG_6_Reproject_Accumulate : 3. History Color의 가중치 계산
+    //#GG_6_Reproject_Accumulate : 4. History Color의 가중치 계산 : ReactiveMask, 속도, DisOcclusion, LuminanceDiff
     fHistoryColorAndWeight.w = ffxMin(fHistoryColorAndWeight.w, ComputeMaxAccumulationWeight(
         UPSAMPLE_F(fHrVelocity), fReactiveMax, UPSAMPLE_F(fDepthClipFactor), UPSAMPLE_F(fLuminanceDiff), lockState
     ));
 
     const UPSAMPLE_F fNormalizedLockLifetime = GetNormalizedRemainingLockLifetime(fLockStatus);
 
+    //#GG_6_Reproject_Accumulate : 4.5. 휘도차이 기반 가중치
     // Kill accumulation based on shading change
     fHistoryColorAndWeight.w = ffxMin(fHistoryColorAndWeight.w, FFX_MIN16_F(ffxMax(0.0f, MaxAccumulationWeight() * ffxPow(UPSAMPLE_F(1) - fLuminanceDiff, 2.0f / 1.0f))));
+    // fHistoryColorAndWeight.w = min( fHistoryColorAndWeight.w, max(0.0f, 12*pow(1-fLuminanceDiff,2)) );
 
     // Load upsampled input color
     RectificationBoxData clippingBox;
@@ -281,8 +284,7 @@ void Accumulate(FFX_MIN16_I2 iPxHrPos)
     fHistoryColorAndWeight.rgb /= Exposure();
 
     FinalizeLockStatus(iPxHrPos, fLockStatus, fUpsampledColorAndWeight.w);
-
-    StoreInternalColorAndWeight(iPxHrPos, fHistoryColorAndWeight);
+        StoreInternalColorAndWeight(iPxHrPos, fHistoryColorAndWeight);
 
     // Output final color when RCAS is disabled
 #if FFX_FSR2_OPTION_APPLY_SHARPENING == 0
