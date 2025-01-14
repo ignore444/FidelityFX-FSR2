@@ -4,3 +4,7 @@ bin/
 out/
 /src/ffx-fsr2-api/shaders/.vs
 src/.vs
+vs/.vs
+vs/src/.vs
+*.filters
+*.user
