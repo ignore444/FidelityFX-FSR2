@@ -72,7 +72,6 @@ void RectifyHistory(
     FFX_PARAMETER_IN UPSAMPLE_F fUpsampleWeight,
     FFX_PARAMETER_IN FfxFloat32 fLockContributionThisFrame)
 {
-    //#GG_6_Reproject_Accumulate : Rectify History
     UPSAMPLE_F fScaleFactorInfluence = UPSAMPLE_F(1.0f / DownscaleFactor().x - 1);
     UPSAMPLE_F fBoxScale = UPSAMPLE_F(1.0f) + (UPSAMPLE_F(0.5f) * fScaleFactorInfluence);
 
@@ -260,31 +259,36 @@ void Accumulate(FFX_MIN16_I2 iPxHrPos)
 
     UPSAMPLE_F2 fKernelWeight = ComputeKernelWeight(UPSAMPLE_F(fHistoryColorAndWeight.w), UPSAMPLE_F(fDepthClipFactor), ffxMax((UPSAMPLE_F(1) - fLockStatus[LOCK_TRUST]), fReactiveMax));
 
+    //#GG_6_Reproject_Accumulate : 5. Upscaling된 color 계산
     UPSAMPLE_F4 fUpsampledColorAndWeight = ComputeUpsampledColorAndWeight(iPxHrPos, fKernelWeight, clippingBox);
 
-
+    //#GG_6_Reproject_Accumulate : 6. GetLockContributionThisFrame
     FfxFloat32 fLockContributionThisFrame = GetLockContributionThisFrame(fHrUv, fAccumulationMask, fReactiveMax, fLockStatus);
 
     // Update accumulation and rectify history
     if (fHistoryColorAndWeight.w > 0.0f) {
-
+        //#GG_6_Reproject_Accumulate : 7. HistoryColor를 정제
         RectifyHistory(clippingBox, fHistoryColorAndWeight, fLockStatus, UPSAMPLE_F(fDepthClipFactor), UPSAMPLE_F(fLumaStabilityFactor), UPSAMPLE_F(fLuminanceDiff), fUpsampledColorAndWeight.w, fLockContributionThisFrame);
 
         fHistoryColorAndWeight.rgb = YCoCgToRGB(fHistoryColorAndWeight.rgb);
     }
 
+    //#GG_6_Reproject_Accumulate : 8. HistoryColor와 Upscaling된 Color 섞음 → fHistoryColorAndWeight에 저장
     Accumulate(iPxHrPos, fHistoryColorAndWeight, fUpsampledColorAndWeight, fDepthClipFactor, fHrVelocity);
 
     //Subtract accumulation weight in reactive areas
     fHistoryColorAndWeight.w -= FfxFloat32(fUpsampledColorAndWeight.w * fReactiveMax);
 
+    //#GG_6_Reproject_Accumulate : 9. 최종Color에 InverseTonemap 적용( 왜냐하면, Tonemap을 강제로 했기 때문이다 )
 #if FFX_FSR2_OPTION_HDR_COLOR_INPUT
     fHistoryColorAndWeight.rgb = InverseTonemap(fHistoryColorAndWeight.rgb);
 #endif
     fHistoryColorAndWeight.rgb /= Exposure();
 
     FinalizeLockStatus(iPxHrPos, fLockStatus, fUpsampledColorAndWeight.w);
-        StoreInternalColorAndWeight(iPxHrPos, fHistoryColorAndWeight);
+
+    //#GG_6_Reproject_Accumulate : 10. 
+    StoreInternalColorAndWeight(iPxHrPos, fHistoryColorAndWeight);
 
     // Output final color when RCAS is disabled
 #if FFX_FSR2_OPTION_APPLY_SHARPENING == 0

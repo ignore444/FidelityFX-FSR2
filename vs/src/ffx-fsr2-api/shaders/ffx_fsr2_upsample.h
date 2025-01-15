@@ -56,8 +56,6 @@ UPSAMPLE_F Pow3(UPSAMPLE_F x)
 
 UPSAMPLE_F4 ComputeUpsampledColorAndWeight(FFX_MIN16_I2 iPxHrPos, UPSAMPLE_F2 fKernelWeight, FFX_PARAMETER_INOUT RectificationBoxData clippingBox)
 {
-    //#GG_6_Reproject_Accumulate : 4. Comput UpsampledColor And Weight
-    
     // We compute a sliced lanczos filter with 2 lobes (other slices are accumulated temporaly)
     FfxFloat32x2 fDstOutputPos = FfxFloat32x2(iPxHrPos) + FFX_BROADCAST_FLOAT32X2(0.5f);      // Destination resolution output pixel center position
     FfxFloat32x2 fSrcOutputPos = fDstOutputPos * DownscaleFactor();                   // Source resolution output pixel center position
@@ -93,7 +91,7 @@ UPSAMPLE_F4 ComputeUpsampledColorAndWeight(FFX_MIN16_I2 iPxHrPos, UPSAMPLE_F2 fK
             FfxInt32x2 iSrcSamplePos = FfxInt32x2(iSrcInputPos) + offsetTL + sampleColRow;
 
             const FfxInt32x2 sampleCoord = ClampLoad(iSrcSamplePos, FfxInt32x2(0, 0), FfxInt32x2(RenderSize()));
-            //#GG_6_Reproject_Accumulate : 4.1. 획득 : lanczos filter을 위해 4x4 픽셀 color값 획득 ← Adjusted Color
+            //#GG_6_Reproject_Accumulate : 5.1. 획득 : lanczos filter을 위해 4x4 픽셀 color값 획득 ← Adjusted Color
             fSamples[iSampleIndex] = LoadPreparedInputColor(FFX_MIN16_I2(sampleCoord));
         }
     }
@@ -128,20 +126,20 @@ UPSAMPLE_F4 ComputeUpsampledColorAndWeight(FFX_MIN16_I2 iPxHrPos, UPSAMPLE_F2 fK
             RectificationBoxAddSample(fRectificationBox, fSamples[iSampleIndex], fBoxSampleWeight);
         }
 
-        //#GG_6_Reproject_Accumulate : 4.2. 계산 : lanczos filter weight * sample
+        //#GG_6_Reproject_Accumulate : 5.2. 계산 : lanczos filter weight * sample
         fWeight += fSampleWeight;
         fColor += fSampleWeight * fSamples[iSampleIndex];
     }
 
-    //#GG_6_Reproject_Accumulate : 4.3. 계산 : 업스케이링된 color
+    //#GG_6_Reproject_Accumulate : 5.3. 계산 : Upscaling된 color
     // Normalize for deringing (we need to compare colors)
     fColor = fColor / (abs(fWeight) > FSR2_EPSILON ? fWeight : UPSAMPLE_F(1.f));
 
-    //#GG_6_Reproject_Accumulate : 4.4. 계산 : clippingBox 구함
+    //#GG_6_Reproject_Accumulate : 5.4. 계산 : clippingBox 구함
     RectificationBoxComputeVarianceBoxData(fRectificationBox);
     clippingBox = RectificationBoxGetData(fRectificationBox);
 
-	//#GG_6_Reproject_Accumulate : 4.5. 계산 : ringing artifact 개선
+	//#GG_6_Reproject_Accumulate : 5.5. 계산 : ringing artifact 개선
     // 주변 픽셀의 최소·최대값을 활용해 현재 픽셀 컬러를 재보정(클램핑)함으로써, 업샘플링이나 필터링 중 발생할 수 있는 링잉(ringing) 아티팩트를 줄이는 역할
     Deringing(RectificationBoxGetData(fRectificationBox), fColor);
 
