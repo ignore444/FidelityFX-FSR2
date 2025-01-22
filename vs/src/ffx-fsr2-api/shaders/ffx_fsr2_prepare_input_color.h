@@ -48,15 +48,16 @@ void ComputeLumaStabilityFactor(FFX_MIN16_I2 iPxLrPos, FfxFloat32 fCurrentFrameL
 
     //move history
     fCurrentFrameLumaHistory[0] = fCurrentFrameLumaHistory[1];
-    fCurrentFrameLumaHistory[1] = fCurrentFrameLumaHistory[2];ㄴ
+    fCurrentFrameLumaHistory[1] = fCurrentFrameLumaHistory[2];
     fCurrentFrameLumaHistory[2] = fCurrentFrameLuma;
 
-    //#GG_2_AdjustInputColor : 1. 계산,저장 : rw_luma_history[iPxPos] = fCurrentFrameLuma;
+    //#GG_2_AdjustInputColor : 1.1. 계산,저장 : rw_luma_history[iPxPos] = fCurrentFrameLuma;
     StoreLumaHistory(iPxLrPos, fCurrentFrameLumaHistory);
 }
 
 void PrepareInputColor(FFX_MIN16_I2 iPxLrPos)
 {
+    // #GG_2_AdjustInputColor : 0. Entry
     //We assume linear data. if non-linear input (sRGB, ...),
     //then we should convert to linear first and back to sRGB on output.
 
@@ -74,12 +75,13 @@ void PrepareInputColor(FFX_MIN16_I2 iPxLrPos)
     fYCoCg.xyz = PREPARED_INPUT_COLOR_F3(RGBToYCoCg(fRgb));
 
     const FfxFloat32 fPerceivedLuma = RGBToPerceivedLuma(fRgb);
+    //#GG_2_AdjustInputColor : 1. 계산,저장 : rw_luma_history[iPxPos] = fCurrentFrameLuma;
     ComputeLumaStabilityFactor(iPxLrPos, fPerceivedLuma);
 
     //compute luma used to lock pixels, if used elsewhere the ffxPow must be moved!
     fYCoCg.w = PREPARED_INPUT_COLOR_F1(ffxPow(fPerceivedLuma, 1.0f / 6.0f));
 
-    //#GG_2_AdjustInputColor : 2. 계산,저장 : rw_prepared_input_color = YcoCg ( exposure, tonemap 적용 )
+	//#GG_2_AdjustInputColor : 2. 계산,저장 : prepared_input_color = RGB2YCoCg(Tonemap(expoure * rgb))
     StorePreparedInputColor(iPxLrPos, fYCoCg);
 
     //#GG_2_AdjustInputColor : 3. 초기화 : rw_ReconstructedPrevNearestDepth[Pos] = farZ;
